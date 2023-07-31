@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -eufo pipefail
+
+echo 'deb http://deb.debian.org/debian/ testing main contrib non-free' >> /etc/apt/sources.list
+
+tee /etc/apt/preferences.d/99my-custom-repository <<EOF
+# Never prefer packages from the my-custom-repo repository
+Package: *
+Pin: origin deb.debian.org
+Pin-Priority: 1
+
+EOF

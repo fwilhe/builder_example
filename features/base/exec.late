@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+OSTREE_SYSROOT=/sysroot
+OSTREE_REPO=$OSTREE_SYSROOT/ostree/repo
+BUILDER_ARCH=$(dpkg --print-architecture)
+OSTREE_REF="gardenlinux/today/$BUILDER_ARCH"
+
+
 mkdir -p /etc/kernel
 echo "console=ttyS0 root=LABEL=ROOT ro" > /etc/kernel/cmdline
 
@@ -10,10 +16,35 @@ mkdir -p /boot/efi/Default
 kernel="$(find /boot -name 'vmlinuz-*' | sort -V | tail -n 1)"
 version="${kernel#*-}"
 
+# Adapt to ostree root-fs requirements, see https://ostreedev.github.io/ostree/adapting-existing/
+
+mkdir -p ostree
+declare -A TOPLEVEL_LINKS=(
+    ["home"]="var/home"
+    ["media"]="run/media"
+    ["mnt"]="var/mnt"
+    ["opt"]="var/opt"
+    ["ostree"]="$OSTREE_SYSROOT/ostree"
+    # ["root"]="var/roothome"
+    ["srv"]="var/srv"
+)
+
+for link in "${!TOPLEVEL_LINKS[@]}"; do
+    target=${TOPLEVEL_LINKS[$link]}
+    echo mv $link $(dirname $target)
+    mv $link $(dirname $target)
+    echo ln -sf $target $link
+    ln -sf $target $link
+done
+
+mv root var/roothome
+ln -sf var/roothome root
+
 unshare --mount bash -c 'mount -t tmpfs none /sys && mount --bind /usr/bin/false /usr/bin/systemd-detect-virt && "$@"' \
 DRACUT_COMPRESS_XZ="$(command -v xz)" dracut \
 --no-hostonly \
 --force \
+--add ostree \
 --kver "$version" \
 --modules "bash dash systemd systemd-initrd kernel-modules kernel-modules-extra terminfo udev-rules dracut-systemd base fs-lib shutdown" \
 --reproducible \
@@ -24,3 +55,52 @@ kernel-install add "$version" "$kernel"
 sed 's/boot\/efi\///' -i /boot/efi/loader/entries/*.conf
 
 SYSTEMD_ESP_PATH=/boot/efi bootctl --no-variables install
+
+mkdir -p "$OSTREE_REPO"
+
+ostree admin init-fs --modern $OSTREE_SYSROOT --sysroot=$OSTREE_SYSROOT
+
+ostree init --mode=archive --repo="$OSTREE_REPO"
+
+ostree admin os-init gardenlinux --sysroot=$OSTREE_SYSROOT
+
+
+mkdir /myrootfs
+cp -r /bin /myrootfs
+cp -r /boot /myrootfs
+cp -r /sbin /myrootfs
+cp -r /usr /myrootfs/usr
+cp -r /var /myrootfs/var
+cp -r /etc /myrootfs/usr/etc
+cp -r /home /myrootfs/home
+cp -r /root /myrootfs/root
+
+# ostree kernel location: https://ostree.readthedocs.io/en/stable/manual/deployment/
+mkdir -p /myrootfs/usr/lib/modules/$version/
+cp /boot/vmlinuz* /myrootfs/usr/lib/modules/$version/vmlinuz
+cp "/boot/initrd.img-$version" /myrootfs/usr/lib/modules/$version/initramfs.img
+
+df -h
+
+ostree commit --repo="$OSTREE_REPO" --branch $OSTREE_REF --skip-if-unchanged -s "First Commit" /myrootfs
+mkdir -p /ostree/deploy
+mkdir -p /sysroot/ostree/deploy
+mkdir -p /sysroot/var
+ostree admin deploy --verbose --karg-proc-cmdline --os=gardenlinux --sysroot=$OSTREE_SYSROOT $OSTREE_REF
+
+cp $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf /boot/efi/loader/entries/
+
+# is there a better way to get this?
+deployment_checksum=$(grep -Po '/ostree/gardenlinux-\K[^/]+' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf | head -n1)
+
+mkdir -p /boot/efi/ostree/gardenlinux-$deployment_checksum/
+
+kernel_name=vmlinuz-$(grep -Po 'vmlinuz-\K.*' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf)
+initramfs=initramfs-$(grep -Po 'initramfs-\K.*' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf).img
+
+cp /boot/vmlinuz* /boot/efi/ostree/gardenlinux-$deployment_checksum/$kernel_name
+cp "/boot/initrd.img-$version" /boot/efi/ostree/gardenlinux-$deployment_checksum/$initramfs
+
+# todo: want root=LABEL=ROOT instead of uuid in bootloader config
+# todo: root disk too small by default / mods in builder to get 4 gb disk
+
