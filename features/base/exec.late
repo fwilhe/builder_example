@@ -75,6 +75,8 @@ cp -r /etc /myrootfs/usr/etc
 cp -r /home /myrootfs/home
 cp -r /root /myrootfs/root
 
+rm -rf /myrootfs/var/run /myrootfs/var/cache /myrootfs/var/lib/apt/lists /myrootfs/var/log /myrootfs/var/tmp /myrootfs/var/spool
+
 # ostree kernel location: https://ostree.readthedocs.io/en/stable/manual/deployment/
 mkdir -p /myrootfs/usr/lib/modules/$version/
 cp /boot/vmlinuz* /myrootfs/usr/lib/modules/$version/vmlinuz
@@ -86,20 +88,26 @@ ostree commit --repo="$OSTREE_REPO" --branch $OSTREE_REF --skip-if-unchanged -s 
 mkdir -p /ostree/deploy
 mkdir -p /sysroot/ostree/deploy
 mkdir -p /sysroot/var
-ostree admin deploy --verbose --karg-proc-cmdline --os=gardenlinux --sysroot=$OSTREE_SYSROOT $OSTREE_REF
+ostree admin deploy --verbose --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --os=gardenlinux --sysroot=$OSTREE_SYSROOT $OSTREE_REF
 
 cp $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf /boot/efi/loader/entries/
 
 # is there a better way to get this?
-deployment_checksum=$(grep -Po '/ostree/gardenlinux-\K[^/]+' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf | head -n1)
+# deployment_checksum=$(grep -Po '/ostree/gardenlinux-\K[^/]+' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf | head -n1)
+
+deployment_checksum=$(cat /boot/vmlinuz-$version /boot/initrd.img-$version | sha256sum | cut -d' ' -f1)
+
+echo "deployment checksum: $deployment_checksum"
 
 mkdir -p /boot/efi/ostree/gardenlinux-$deployment_checksum/
 
 kernel_name=vmlinuz-$(grep -Po 'vmlinuz-\K.*' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf)
-initramfs=initramfs-$(grep -Po 'initramfs-\K.*' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf).img
+initramfs=initramfs-$(grep -Po 'initramfs-\K.*' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf)
 
-cp /boot/vmlinuz* /boot/efi/ostree/gardenlinux-$deployment_checksum/$kernel_name
+cp /boot/vmlinuz-$version /boot/efi/ostree/gardenlinux-$deployment_checksum/$kernel_name
 cp "/boot/initrd.img-$version" /boot/efi/ostree/gardenlinux-$deployment_checksum/$initramfs
+
+echo 'timeout 30' > /boot/efi/loader/loader.conf
 
 # todo: want root=LABEL=ROOT instead of uuid in bootloader config
 # todo: root disk too small by default / mods in builder to get 4 gb disk
