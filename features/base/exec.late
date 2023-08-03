@@ -18,13 +18,12 @@ version="${kernel#*-}"
 
 # Adapt to ostree root-fs requirements, see https://ostreedev.github.io/ostree/adapting-existing/
 
-mkdir -p ostree
 declare -A TOPLEVEL_LINKS=(
     ["home"]="var/home"
     ["media"]="run/media"
     ["mnt"]="var/mnt"
     ["opt"]="var/opt"
-    ["ostree"]="$OSTREE_SYSROOT/ostree"
+    # ["ostree"]="$OSTREE_SYSROOT/ostree"
     # ["root"]="var/roothome"
     ["srv"]="var/srv"
 )
@@ -39,6 +38,8 @@ done
 
 mv root var/roothome
 ln -sf var/roothome root
+
+ln -s sysroot/ostree ostree
 
 unshare --mount bash -c 'mount -t tmpfs none /sys && mount --bind /usr/bin/false /usr/bin/systemd-detect-virt && "$@"' \
 DRACUT_COMPRESS_XZ="$(command -v xz)" dracut \
@@ -85,9 +86,7 @@ cp "/boot/initrd.img-$version" /myrootfs/usr/lib/modules/$version/initramfs.img
 df -h
 
 ostree commit --repo="$OSTREE_REPO" --branch $OSTREE_REF --skip-if-unchanged -s "First Commit" /myrootfs
-mkdir -p /ostree/deploy
-mkdir -p /sysroot/ostree/deploy
-mkdir -p /sysroot/var
+
 ostree admin deploy --verbose --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --os=gardenlinux --sysroot=$OSTREE_SYSROOT $OSTREE_REF
 
 cp $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf /boot/efi/loader/entries/
@@ -109,6 +108,5 @@ cp "/boot/initrd.img-$version" /boot/efi/ostree/gardenlinux-$deployment_checksum
 
 echo 'timeout 30' > /boot/efi/loader/loader.conf
 
-# todo: want root=LABEL=ROOT instead of uuid in bootloader config
 # todo: root disk too small by default / mods in builder to get 4 gb disk
 
