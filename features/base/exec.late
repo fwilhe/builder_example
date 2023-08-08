@@ -53,7 +53,7 @@ DRACUT_COMPRESS_XZ="$(command -v xz)" dracut \
 
 kernel-install add "$version" "$kernel"
 
-sed 's/boot\/efi\///' -i /boot/efi/loader/entries/*.conf
+# sed 's/boot\/efi\///' -i /boot/efi/loader/entries/*.conf
 
 SYSTEMD_ESP_PATH=/boot/efi bootctl --no-variables install
 

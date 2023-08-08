@@ -1,9 +1,8 @@
-dracut
 iproute2
 linux-image-$arch
 systemd
 systemd-boot
 systemd-resolved
 bubblewrap
-ostree
-ostree-boot
+wget
+vim

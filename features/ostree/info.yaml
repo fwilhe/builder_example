@@ -1,5 +1,0 @@
-description: ostree
-type: flag
-features:
-  include:
-    - base

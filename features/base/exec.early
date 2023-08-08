@@ -2,12 +2,24 @@
 
 set -eufo pipefail
 
-echo 'deb http://deb.debian.org/debian/ testing main contrib non-free' >> /etc/apt/sources.list
+echo 'deb http://deb.debian.org/debian/ testing main contrib non-free' > /etc/apt/sources.list
+echo 'deb-src http://deb.debian.org/debian/ testing main contrib non-free' >> /etc/apt/sources.list
 
-tee /etc/apt/preferences.d/99my-custom-repository <<EOF
-# Never prefer packages from the my-custom-repo repository
-Package: *
-Pin: origin deb.debian.org
-Pin-Priority: 1
+# tee /etc/apt/preferences.d/99my-custom-repository <<EOF
+# # Never prefer packages from the my-custom-repo repository
+# Package: *
+# Pin: origin deb.debian.org
+# Pin-Priority: 1
 
-EOF
+# EOF
+
+DEBIAN_FRONTEND=noninteractive apt-get update -y
+
+DEBIAN_FRONTEND=noninteractive apt-get install -y wget dracut
+DEBIAN_FRONTEND=noninteractive apt-get build-dep -y ostree ostree-boot
+wget https://github.com/ostreedev/ostree/releases/download/v2023.5/libostree-2023.5.tar.xz
+tar xf libostree-2023.5.tar.xz
+cd libostree-2023.5
+./configure --with-dracut --prefix=/usr
+make
+make install
