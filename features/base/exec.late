@@ -59,12 +59,6 @@ SYSTEMD_ESP_PATH=/boot/efi bootctl --no-variables install
 
 mkdir -p "$OSTREE_REPO"
 
-ostree admin init-fs --modern $OSTREE_SYSROOT --sysroot=$OSTREE_SYSROOT
-
-ostree init --mode=archive --repo="$OSTREE_REPO"
-
-ostree admin os-init gardenlinux --sysroot=$OSTREE_SYSROOT
-
 
 mkdir /myrootfs
 cp -r /bin /myrootfs
@@ -83,16 +77,15 @@ mkdir -p /myrootfs/usr/lib/modules/$version/
 cp /boot/vmlinuz* /myrootfs/usr/lib/modules/$version/vmlinuz
 cp "/boot/initrd.img-$version" /myrootfs/usr/lib/modules/$version/initramfs.img
 
-df -h
+ostree admin init-fs --modern $OSTREE_SYSROOT
+ostree init --mode=archive --repo=$OSTREE_REPO
+ostree admin os-init --sysroot=$OSTREE_SYSROOT gardenlinux
+ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
+ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "First Commit" --no-xattrs /myrootfs
+ostree admin deploy --verbose --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
 
-ostree commit --repo="$OSTREE_REPO" --branch $OSTREE_REF --skip-if-unchanged -s "First Commit" /myrootfs
-
-ostree admin deploy --verbose --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --os=gardenlinux --sysroot=$OSTREE_SYSROOT $OSTREE_REF
 
 cp $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf /boot/efi/loader/entries/
-
-# is there a better way to get this?
-# deployment_checksum=$(grep -Po '/ostree/gardenlinux-\K[^/]+' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf | head -n1)
 
 deployment_checksum=$(cat /boot/vmlinuz-$version /boot/initrd.img-$version | sha256sum | cut -d' ' -f1)
 
