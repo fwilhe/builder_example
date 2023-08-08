@@ -82,6 +82,7 @@ ostree init --mode=archive --repo=$OSTREE_REPO
 ostree admin os-init --sysroot=$OSTREE_SYSROOT gardenlinux
 ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
 ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "First Commit" --no-xattrs /myrootfs
+ostree remote add --no-gpg-verify --no-sign-verify origin http://172.16.48.131:8000 $OSTREE_REF # fixme: hardcoded ip address
 ostree admin deploy --verbose --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
 
 
