@@ -7,3 +7,5 @@ systemd-resolved
 bubblewrap
 ostree
 ostree-boot
+python3
+python-is-python3

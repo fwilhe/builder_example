@@ -53,7 +53,7 @@ DRACUT_COMPRESS_XZ="$(command -v xz)" dracut \
 
 kernel-install add "$version" "$kernel"
 
-sed 's/boot\/efi\///' -i /boot/efi/loader/entries/*.conf
+# sed 's/boot\/efi\///' -i /boot/efi/loader/entries/*.conf
 
 SYSTEMD_ESP_PATH=/boot/efi bootctl --no-variables install
 
@@ -98,6 +98,12 @@ initramfs=initramfs-$(grep -Po 'initramfs-\K.*' $OSTREE_SYSROOT/boot/loader/entr
 
 cp /boot/vmlinuz-$version /boot/efi/ostree/gardenlinux-$deployment_checksum/$kernel_name
 cp "/boot/initrd.img-$version" /boot/efi/ostree/gardenlinux-$deployment_checksum/$initramfs
+
+echo "title Garden Linux" > /boot/efi/loader/entries/gardenlinux.conf
+echo "version $version" >> /boot/efi/loader/entries/gardenlinux.conf
+echo "linux /Default/$version/linux" >> /boot/efi/loader/entries/gardenlinux.conf
+echo "initrd /Default/$version/initrd.img-$version" >> /boot/efi/loader/entries/gardenlinux.conf
+echo "options root=LABEL=ROOT ro efi=runtime" >> /boot/efi/loader/entries/gardenlinux.conf
 
 echo 'timeout 30' > /boot/efi/loader/loader.conf
 
