@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 
+# ostree poc (fwilhe)
+# todo:
+#   - root disk too small by default / mods in builder to get 4 gb disk
+
 set -euo pipefail
+
+OSTREE_SYSROOT=/sysroot
+OSTREE_REPO=$OSTREE_SYSROOT/ostree/repo
+BUILDER_ARCH=$(dpkg --print-architecture)
+OSTREE_REF="gardenlinux/today/$BUILDER_ARCH"
 
 mkdir -p /etc/kernel
 echo "console=ttyS0 root=LABEL=ROOT ro" > /etc/kernel/cmdline
@@ -10,10 +19,36 @@ mkdir -p /boot/efi/Default
 kernel="$(find /boot -name 'vmlinuz-*' | sort -V | tail -n 1)"
 version="${kernel#*-}"
 
+# Adapt to ostree root-fs requirements, see https://ostreedev.github.io/ostree/adapting-existing/
+
+declare -A TOPLEVEL_LINKS=(
+    ["home"]="var/home"
+    ["media"]="run/media"
+    ["mnt"]="var/mnt"
+    ["opt"]="var/opt"
+    # ["ostree"]="$OSTREE_SYSROOT/ostree"
+    # ["root"]="var/roothome"
+    ["srv"]="var/srv"
+)
+
+for link in "${!TOPLEVEL_LINKS[@]}"; do
+    target=${TOPLEVEL_LINKS[$link]}
+    echo mv $link $(dirname $target)
+    mv $link $(dirname $target)
+    echo ln -sf $target $link
+    ln -sf $target $link
+done
+
+mv root var/roothome
+ln -sf var/roothome root
+
+ln -s sysroot/ostree ostree
+
 unshare --mount bash -c 'mount -t tmpfs none /sys && mount --bind /usr/bin/false /usr/bin/systemd-detect-virt && "$@"' \
 DRACUT_COMPRESS_XZ="$(command -v xz)" dracut \
 --no-hostonly \
 --force \
+--add ostree \
 --kver "$version" \
 --modules "bash dash systemd systemd-initrd kernel-modules kernel-modules-extra terminfo udev-rules dracut-systemd base fs-lib shutdown" \
 --reproducible \
@@ -28,3 +63,94 @@ SYSTEMD_ESP_PATH=/boot/efi kernel-install --verbose --entry-token literal:Defaul
 sed 's/boot\/efi\///' -i /boot/efi/loader/entries/*.conf
 
 SYSTEMD_ESP_PATH=/boot/efi bootctl --no-variables install
+
+mkdir -p "$OSTREE_REPO"
+
+mkdir /myrootfs
+cp -r /bin /myrootfs
+cp -r /boot /myrootfs
+cp -r /sbin /myrootfs
+cp -r /usr /myrootfs/usr
+cp -r /var /myrootfs/var
+cp -r /etc /myrootfs/usr/etc
+cp -r /home /myrootfs/home
+cp -r /root /myrootfs/root
+mkdir -p /myrootfs/dev
+mkdir -p /myrootfs/sys
+mkdir -p /myrootfs/proc
+mkdir -p /myrootfs/run
+mkdir -p /myrootfs/tmp
+
+mkdir -p /myrootfs/usr/etc/systemd/system/initrd-switch-root.service.d/
+echo 'ExecStart=systemctl --no-block switch-root /sysroot' > /myrootfs/usr/etc/systemd/system/initrd-switch-root.service.d/override.conf
+
+set +x
+ln -s ../usr/sbin /myrootfs/sbin
+ln -s ../usr/bin /myrootfs/bin
+ln -s ../usr/lib/systemd/systemd /myrootfs/sbin/init
+# ln -s ../../usr/lib/systemd/systemd /myrootfs/lib/systemd/systemd
+
+echo ------ DEBUG ------
+ls -l /myrootfs/sbin/init
+ls -l /myrootfs/usr/sbin/init
+
+ls -l /myrootfs/sbin
+ls -l /myrootfs/bin
+
+readlink -f /myrootfs/sbin
+readlink -f /myrootfs/bin
+
+rm -rf /myrootfs/var/run /myrootfs/var/cache /myrootfs/var/lib/apt/lists /myrootfs/var/log /myrootfs/var/tmp /myrootfs/var/spool
+
+# ostree kernel location: https://ostreedev.github.io/ostree/deployment/#contents-of-a-deployment
+mkdir -p /myrootfs/usr/lib/modules/$version/
+cp /boot/vmlinuz* /myrootfs/usr/lib/modules/$version/vmlinuz
+cp "/boot/initrd.img-$version" /myrootfs/usr/lib/modules/$version/initramfs.img
+
+ostree admin init-fs --modern $OSTREE_SYSROOT
+ostree init --mode=archive --repo=$OSTREE_REPO
+ostree admin os-init --sysroot=$OSTREE_SYSROOT gardenlinux
+ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
+ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "First Commit" --no-xattrs /myrootfs
+
+# Deploy with systemd debug
+ostree admin deploy --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --karg-append=systemd.log_level=debug --karg-append=systemd.log_target=console --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
+# Deploy without systemd debug
+# ostree admin deploy --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
+
+# hack to avoid the error [here](https://github.com/ostreedev/ostree/blob/bf3495dbbfb36cd8507ddac0533fddbc24e5a1aa/src/switchroot/ostree-prepare-root.c#L392)
+# Not sure how this is intended to work
+mydir=`ls /sysroot/ostree/boot.1.1/gardenlinux/`
+echo "--- DEBUG --- mydir $mydir"
+mkdir /sysroot/ostree/boot.1.1/gardenlinux/$mydir/0/sysroot
+
+
+
+# not sure..
+# ln -s /sysroot/ostree/deploy/gardenlinux/deploy/bd16331edaa07474843d7f6de4fb9a8aa22f911d5c88884b1ba79c998535a63b.0/usr/lib/init ../../sbin/init
+
+echo '------DEBUG------'
+find /sysroot -name init
+find /sysroot -name systemd
+
+find /sysroot -type f -name 'init' -exec ls -lh "{}" \;
+find /sysroot -type f -name 'systemd' -exec ls -lh "{}" \;
+find /sysroot -type f -name 'vmlinuz*' -exec ls -lh "{}" \;
+find /sysroot -type f -name 'initramfs.img' -exec ls -lh "{}" \;
+
+cp $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf /boot/efi/loader/entries/
+
+deployment_checksum=$(cat /boot/vmlinuz-$version /boot/initrd.img-$version | sha256sum | cut -d' ' -f1)
+
+echo "deployment checksum: $deployment_checksum"
+
+mkdir -p /boot/efi/ostree/gardenlinux-$deployment_checksum/
+
+kernel_name=vmlinuz-$(grep -Po 'vmlinuz-\K.*' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf)
+initramfs=initramfs-$(grep -Po 'initramfs-\K.*' $OSTREE_SYSROOT/boot/loader/entries/ostree-1-gardenlinux.conf)
+
+cp /boot/vmlinuz-$version /boot/efi/ostree/gardenlinux-$deployment_checksum/$kernel_name
+cp "/boot/initrd.img-$version" /boot/efi/ostree/gardenlinux-$deployment_checksum/$initramfs
+
+
+echo 'timeout 30' > /boot/efi/loader/loader.conf

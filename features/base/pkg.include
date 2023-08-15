@@ -4,3 +4,9 @@ linux-image-$arch
 systemd
 systemd-boot
 systemd-resolved
+ostree
+ostree-boot
+bubblewrap
+vim-tiny
+wget
+
