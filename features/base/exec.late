@@ -88,6 +88,11 @@ set +x
 ln -s ../usr/sbin /myrootfs/sbin
 ln -s ../usr/bin /myrootfs/bin
 ln -s ../usr/lib/systemd/systemd /myrootfs/sbin/init
+
+ln -s ../usr/lib /myrootfs/lib
+
+# mkdir -p /myrootfs/lib/systemd/
+# cp /myrootfs/usr/lib/systemd/systemd /myrootfs/lib/systemd/systemd
 # ln -s ../../usr/lib/systemd/systemd /myrootfs/lib/systemd/systemd
 
 echo ------ DEBUG ------
@@ -114,9 +119,9 @@ ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
 ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "First Commit" --no-xattrs /myrootfs
 
 # Deploy with systemd debug
-ostree admin deploy --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --karg-append=systemd.log_level=debug --karg-append=systemd.log_target=console --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
+# ostree admin deploy --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --karg-append=systemd.log_level=debug --karg-append=systemd.log_target=console --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
 # Deploy without systemd debug
-# ostree admin deploy --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
+ostree admin deploy --karg=root=LABEL=ROOT --karg-append=ro --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
 
 # hack to avoid the error [here](https://github.com/ostreedev/ostree/blob/bf3495dbbfb36cd8507ddac0533fddbc24e5a1aa/src/switchroot/ostree-prepare-root.c#L392)
 # Not sure how this is intended to work
