@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+export PATH="/builder/image.d:$PATH"
+
+rootfs_work="$(mktemp -d)"
+mount -t tmpfs tmpfs "$rootfs_work"
+
+MYROOT="$(mktemp -d)"
+mount -t tmpfs tmpfs "$MYROOT"
+mkdir -p "$MYROOT"/sysroot
+OSTREE_SYSROOT="$MYROOT/sysroot"
+OSTREE_REPO=$OSTREE_SYSROOT/ostree/repo
+OSTREE_REF="gardenlinux/today/$BUILDER_ARCH"
+
+rootfs="$1"
+output="$2"
+
+tar xf "$rootfs" -C "$rootfs_work"
+
+mv "$rootfs_work"/etc "$rootfs_work"/usr/etc
+
+ostree admin init-fs --modern $OSTREE_SYSROOT
+ostree init --mode=archive --repo=$OSTREE_REPO
+ostree admin os-init --sysroot=$OSTREE_SYSROOT gardenlinux
+ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
+ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "Gardenlinux build $(date)" "$rootfs_work"
+ostree admin deploy --karg=root=LABEL=ROOT --karg-append=rw --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
+
+boot_hash=`ls "$OSTREE_SYSROOT"/ostree/boot.1.1/gardenlinux/`
+mkdir -p "$OSTREE_SYSROOT"/ostree/boot.1.1/gardenlinux/$boot_hash/0/sysroot
+
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/roothome
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/opt
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/srv
+
+# Build disk image, this is hacky as of now, needs rework
+# Setup bootloader
+boot_dir=$(mktemp -d)
+cp -r $OSTREE_SYSROOT/boot/* $boot_dir
+LOADER_TEMP=$(mktemp -d)
+rm -rf $boot_dir/loader
+# move to temp dir to avoid errors with systemd-boot install
+mv $boot_dir/loader.1 $LOADER_TEMP
+mount --bind $boot_dir $rootfs_work/boot/efi
+mount --rbind /proc $rootfs_work/proc
+mount --rbind /sys $rootfs_work/sys
+SYSTEMD_ESP_PATH=/boot/efi chroot $rootfs_work bootctl --no-variables install
+umount -l $rootfs_work/proc
+umount -l $rootfs_work/sys
+umount $rootfs_work/boot/efi
+# recover from temp dir
+cp -r $LOADER_TEMP/* $boot_dir/loader.1
+cp -r $LOADER_TEMP/* $boot_dir/loader
+cp $boot_dir/loader/loader.1/entries/* $boot_dir/loader/entries
+cat $boot_dir/loader/entries/*
+echo 'timeout 7' > $boot_dir/loader/loader.conf
+
+efi_partition=$(mktemp)
+root_partition=$(mktemp)
+partitions=$(mktemp)
+
+# fixme: make disk size dynamic
+truncate -s 300M "$efi_partition"
+# make_reproducible_vfat $OSTREE_SYSROOT/boot "$efi_partition"
+make_reproducible_vfat $boot_dir "$efi_partition"
+size_uefi=$(du -b "$efi_partition" | awk '{ padded_size = $1 + (MB - ($1 % MB) % MB); print (padded_size / MB) }' "MB=1048576")
+part_uuid_uefi=b0e0359c-007b-4361-a0d1-a7ca2d73fe3c
+echo -e "$part_uuid_uefi\tuefi\t$size_uefi\t0\t$efi_partition\tEFI" >> "$partitions"
+
+
+truncate -s 2G "$root_partition"
+make_reproducible_ext4 -l ROOT "$MYROOT"/sysroot "$root_partition"
+size_rootfs=$(du -b "$root_partition" | awk '{ padded_size = $1 + (MB - ($1 % MB) % MB); print (padded_size / MB) }' "MB=1048576")
+part_uuid_rootfs=a9bef950-8218-4888-9f1c-1ad8bb481807
+echo -e "$part_uuid_rootfs\tlinux\t$size_rootfs\t0\t$root_partition\tROOT" >> "$partitions"
+
+makedisk $rootfs_work "$output" < "$partitions"

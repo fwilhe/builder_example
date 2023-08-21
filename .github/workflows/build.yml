@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "ostree" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -13,4 +13,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build the image
-        run: ./build base
+        run: ./build ostree

@@ -1,0 +1,14 @@
+ca-certificates
+curl
+dracut
+iproute2
+iputils-ping
+isc-dhcp-client
+linux-image-$arch
+network-manager
+ostree
+ostree-boot
+podman
+systemd
+systemd-boot
+systemd-resolved
