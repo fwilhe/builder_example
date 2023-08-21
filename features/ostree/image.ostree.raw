@@ -29,6 +29,24 @@ mkdir -p "$rootfs_work"/usr/lib/modules/$version/
 cp "$rootfs_work"/boot/vmlinuz* "$rootfs_work"/usr/lib/modules/$version/vmlinuz
 cp "$rootfs_work/boot/initrd.img-$version" "$rootfs_work"/usr/lib/modules/$version/initramfs.img
 
+# Delete apt because this is an image-based system
+rm -rf "$rootfs_work"/etc/apt
+rm -f "$rootfs_work"/usr/bin/apt*
+rm -f "$rootfs_work"/etc/cron.daily/apt-compat
+rm -f "$rootfs_work"/etc/logrotate.d/apt
+rm -f "$rootfs_work"/etc/systemd/system/timers.target.wants/apt-daily-upgrade.timer
+rm -f "$rootfs_work"/etc/systemd/system/timers.target.wants/apt-daily.timer
+rm -f "$rootfs_work"/usr/bin/debconf-apt-progress
+rm -rf "$rootfs_work"/usr/lib/apt/
+rm -rf "$rootfs_work"/usr/lib/dpkg/methods/apt/
+rm -rf "$rootfs_work"/usr/lib/systemd/system/apt*
+rm -rf "$rootfs_work"/usr/share/bash-completion/completions/apt
+rm -rf "$rootfs_work"/usr/share/bug/apt/
+rm -rf "$rootfs_work"/var/cache/apt/
+rm -rf "$rootfs_work"/var/lib/apt/
+rm -rf "$rootfs_work"/var/lib/dpkg
+rm -rf "$rootfs_work"/var/log/apt/
+
 mv "$rootfs_work"/etc "$rootfs_work"/usr/etc
 
 ostree admin init-fs --modern $OSTREE_SYSROOT
