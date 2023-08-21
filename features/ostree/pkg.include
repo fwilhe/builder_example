@@ -1,0 +1,8 @@
+dracut
+iproute2
+linux-image-$arch
+ostree
+ostree-boot
+systemd
+systemd-boot
+systemd-resolved
