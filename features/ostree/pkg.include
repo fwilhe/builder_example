@@ -3,6 +3,7 @@ iproute2
 linux-image-$arch
 ostree
 ostree-boot
+podman
 systemd
 systemd-boot
 systemd-resolved
