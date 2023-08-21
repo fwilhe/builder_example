@@ -36,29 +36,20 @@ ln -s sysroot/ostree ostree
 
 echo $(date) > /timestamp
 
-
 mkdir -p /boot/efi/Default
 
-for kernel in /boot/vmlinuz-*; do
-	unshare --mount bash -c 'mount -t tmpfs none /sys && mount --bind /usr/bin/false /usr/bin/systemd-detect-virt && "$@"' \
-	DRACUT_COMPRESS_XZ="$(command -v xz)" dracut \
-	--no-hostonly \
-	--force \
-	--kver "${kernel#*-}" \
-	--add "ostree" \
-	--modules "bash dash systemd systemd-initrd kernel-modules kernel-modules-extra terminfo udev-rules dracut-systemd base fs-lib shutdown" \
-	--reproducible \
-	"/boot/initrd.img-${kernel#*-}"
-
-	SYSTEMD_ESP_PATH=/boot/efi kernel-install add "${kernel#*-}" "${kernel}"
-done
+unshare --mount bash -c 'mount -t tmpfs none /sys && mount --bind /usr/bin/false /usr/bin/systemd-detect-virt && "$@"' \
+    DRACUT_COMPRESS_XZ="$(command -v xz)" dracut \
+    --no-hostonly \
+    --force \
+    --kver "${version}" \
+    --add "ostree" \
+    --modules "bash dash systemd systemd-initrd kernel-modules kernel-modules-extra terminfo udev-rules dracut-systemd base fs-lib shutdown" \
+    --reproducible \
+    "/boot/initrd.img-${version}"
 
 if ! command -v python3 > /dev/null; then
 	mkdir -p /etc/kernel/install.d
 	ln -s /usr/bin/true /etc/kernel/install.d/60-ukify.install
 fi
 SYSTEMD_ESP_PATH=/boot/efi kernel-install --verbose --entry-token literal:Default add "$version" "$kernel"
-
-sed 's/boot\/efi\///' -i /boot/efi/loader/entries/*.conf
-
-SYSTEMD_ESP_PATH=/boot/efi bootctl --no-variables install
