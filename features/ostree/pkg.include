@@ -9,6 +9,7 @@ network-manager
 ostree
 ostree-boot
 podman
+sudo
 systemd
 systemd-boot
 systemd-resolved

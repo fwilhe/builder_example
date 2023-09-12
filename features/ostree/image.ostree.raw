@@ -32,9 +32,12 @@ boot_hash=`ls "$OSTREE_SYSROOT"/ostree/boot.1.1/gardenlinux/`
 mkdir -p "$OSTREE_SYSROOT"/ostree/boot.1.1/gardenlinux/$boot_hash/0/sysroot
 
 mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
 mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/roothome
 mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/opt
 mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/srv
+
+chown 1000:1000 "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
 
 # Build disk image, this is hacky as of now, needs rework
 # Setup bootloader

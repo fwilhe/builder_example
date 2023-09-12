@@ -17,11 +17,11 @@ Use the `bin/start-vm` script from [Garden Linux](https://github.com/gardenlinux
 Depending on your architecture, it should look like this:
 
 ```bash
-$ path/to/gardenlinux/bin/start-vm --no-watchdog .build/ostree-arm64-trixie-local.ostree.raw
+$ path/to/gardenlinux/bin/start-vm --no-watchdog .build/ostree-arm64-trixie*.ostree.raw
 ```
 
 ```bash
-$ path/to/gardenlinux/bin/start-vm --no-watchdog .build/ostree-amd64-trixie-local.ostree.raw
+$ path/to/gardenlinux/bin/start-vm --no-watchdog .build/ostree-amd64-trixie*.ostree.raw
 ```
 
 Check for the actual name of the image in the `.build` directory.

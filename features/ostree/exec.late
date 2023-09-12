@@ -62,6 +62,11 @@ cp "/boot/initrd.img-$version" /usr/lib/modules/$version/initramfs.img
 # Build fails if we do this here instead of in image.ostree.raw
 # mv /etc /usr/etc
 
+useradd --user-group --home-dir /var/home/user --shell /usr/bin/bash user
+printf "user:user123!" | chpasswd
+echo "%sudo ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/nopasswd
+usermod -aG sudo user
+
 # Delete apt because this is an image-based system
 rm -f /etc/cron.daily/apt-compat
 rm -f /etc/logrotate.d/apt
