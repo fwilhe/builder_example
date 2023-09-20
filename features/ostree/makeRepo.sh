@@ -22,5 +22,7 @@ ROOTFS_TARBALL=$1
 mkdir -p $OSTREE_ROOTFS
 mkdir -p $OSTREE_REPO
 tar xf "$ROOTFS_TARBALL" --directory=$OSTREE_ROOTFS
+date > $OSTREE_ROOTFS/timestamp
+mv $OSTREE_ROOTFS/etc $OSTREE_ROOTFS/usr/etc
 ostree init --mode=archive --repo=$OSTREE_REPO
 ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "Debian testing build $(date)" $OSTREE_ROOTFS
