@@ -34,7 +34,7 @@ ln -sf var/roothome root
 
 ln -s sysroot/ostree ostree
 
-echo $(date) > /timestamp
+echo $(date --utc +%Y-%m-%dT%H:%M:%S%Z) > /timestamp
 
 mkdir -p /boot/efi/Default
 

@@ -21,11 +21,12 @@ tar xf "$rootfs" -C "$rootfs_work"
 
 mv "$rootfs_work"/etc "$rootfs_work"/usr/etc
 
-ostree admin init-fs --modern $OSTREE_SYSROOT
+mkdir -p $OSTREE_REPO
 ostree init --mode=archive --repo=$OSTREE_REPO
+ostree admin init-fs --modern $OSTREE_SYSROOT
 ostree admin os-init --sysroot=$OSTREE_SYSROOT gardenlinux
 ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
-ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "Debian testing build $(date)" "$rootfs_work"
+ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "Debian testing build $(date --utc +%Y-%m-%dT%H:%M:%S%Z)" "$rootfs_work"
 ostree remote --repo=$OSTREE_REPO add --no-gpg-verify --no-sign-verify origin http://172.16.48.131:8000 $OSTREE_REF # fixme: hardcoded ip address
 ostree admin deploy --karg=root=LABEL=ROOT --karg-append=rw --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
 
