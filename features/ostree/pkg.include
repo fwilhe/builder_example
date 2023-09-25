@@ -13,3 +13,4 @@ sudo
 systemd
 systemd-boot
 systemd-resolved
+python3
