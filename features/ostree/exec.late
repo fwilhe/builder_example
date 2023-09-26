@@ -36,6 +36,8 @@ ln -s sysroot/ostree ostree
 
 echo $(date --utc +%Y-%m-%dT%H:%M:%S%Z) > /timestamp
 
+mkdir /sysroot
+
 mkdir -p /boot/efi/Default
 
 unshare --mount bash -c 'mount -t tmpfs none /sys && mount --bind /usr/bin/false /usr/bin/systemd-detect-virt && "$@"' \
