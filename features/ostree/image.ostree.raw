@@ -41,8 +41,8 @@ mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/srv
 mkdir "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user/rootfs
 mkdir "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user/rootfs/sysroot
 
-cp -r "$OSTREE_REPO" "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
-cp -r "$rootfs_work"/* "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user/rootfs
+cp -r --preserve "$OSTREE_REPO" "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
+cp -r --preserve "$rootfs_work"/* "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user/rootfs
 
 ls -la "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
 ls -la "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user/repo
