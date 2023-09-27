@@ -14,3 +14,5 @@ systemd
 systemd-boot
 systemd-resolved
 python3
+vim-nox
+dosfstools

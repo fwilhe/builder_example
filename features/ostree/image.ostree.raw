@@ -12,7 +12,9 @@ mount -t tmpfs tmpfs "$MYROOT"
 mkdir -p "$MYROOT"/sysroot
 OSTREE_SYSROOT="$MYROOT/sysroot"
 OSTREE_REPO=$OSTREE_SYSROOT/ostree/repo
-OSTREE_REF="debian/testing/$BUILDER_ARCH"
+OSTREE_BRANCH="debian/testing/$BUILDER_ARCH"
+OSTREE_REMOTE=origin
+OSTREE_REF="$OSTREE_REMOTE:$OSTREE_BRANCH"
 
 rootfs="$1"
 output="$2"
@@ -26,9 +28,9 @@ ostree init --mode=archive --repo=$OSTREE_REPO
 ostree admin init-fs --modern $OSTREE_SYSROOT
 ostree admin os-init --sysroot=$OSTREE_SYSROOT gardenlinux
 ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
-ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "Debian testing build $(date --utc +%Y-%m-%dT%H:%M:%S%Z)" "$rootfs_work"
+ostree commit --repo=$OSTREE_REPO --branch $OSTREE_BRANCH --skip-if-unchanged -s "Debian testing build $(date --utc +%Y-%m-%dT%H:%M:%S%Z)" "$rootfs_work"
 ostree remote --repo=$OSTREE_REPO add --no-gpg-verify --no-sign-verify origin http://localhost:8000 $OSTREE_REF # fixme: hardcoded ip address
-ostree admin deploy --karg=root=LABEL=ROOT --karg-append=rw --karg-append=efi=runtime --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
+ostree admin deploy --karg=root=LABEL=ROOT --karg-append=rw --karg-append=efi=runtime --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_BRANCH
 
 mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home
 mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
@@ -80,7 +82,7 @@ cp -r $LOADER_TEMP/* $boot_dir/loader.1
 cp -r $LOADER_TEMP/* $boot_dir/loader
 cp $boot_dir/loader/loader.1/entries/* $boot_dir/loader/entries
 cat $boot_dir/loader/entries/*
-echo 'timeout 7' > $boot_dir/loader/loader.conf
+echo 'timeout 15' > $boot_dir/loader/loader.conf
 
 efi_partition=$(mktemp)
 root_partition=$(mktemp)
@@ -95,7 +97,7 @@ part_uuid_uefi=b0e0359c-007b-4361-a0d1-a7ca2d73fe3c
 echo -e "$part_uuid_uefi\tuefi\t$size_uefi\t0\t$efi_partition\tEFI" >> "$partitions"
 
 
-truncate -s 7G "$root_partition"
+truncate -s 5G "$root_partition"
 make_reproducible_ext4 -t 11111111 -l ROOT "$MYROOT"/sysroot "$root_partition"
 size_rootfs=$(du -b "$root_partition" | awk '{ padded_size = $1 + (MB - ($1 % MB) % MB); print (padded_size / MB) }' "MB=1048576")
 part_uuid_rootfs=a9bef950-8218-4888-9f1c-1ad8bb481807
