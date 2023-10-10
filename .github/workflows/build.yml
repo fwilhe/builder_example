@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "ostree" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -12,5 +12,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
       - name: Build the image
-        run: ./build ostree
+        run: ./build ostree-amd64 ostree-arm64
+      - name: Upload amd64
+        uses: actions/upload-artifact@v3
+        with:
+          name: ostree-amd64-trixie
+          path: .build/ostree-amd64-trixie*.ostree.raw
+      - name: Upload arm64
+        uses: actions/upload-artifact@v3
+        with:
+          name: ostree-arm64-trixie
+          path: .build/ostree-arm64-trixie*.ostree.raw
