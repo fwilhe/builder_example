@@ -13,4 +13,11 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Build the image
         run: ./build ostree-amd64 ostree-arm64
-      - run: ls -l .build/*.raw
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ostree-amd64-trixie
+          path: .build/ostree-amd64-trixie*.ostree.raw
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ostree-arm64-trixie
+          path: .build/ostree-arm64-trixie*.ostree.raw
