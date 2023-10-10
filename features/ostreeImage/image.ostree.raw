@@ -52,6 +52,7 @@ LOADER_TEMP=$(mktemp -d)
 rm -rf $boot_dir/loader
 # move to temp dir to avoid errors with systemd-boot install
 mv $boot_dir/loader.1 $LOADER_TEMP
+mkdir -p $rootfs_work/boot/efi
 mount --bind $boot_dir $rootfs_work/boot/efi
 mount --rbind /proc $rootfs_work/proc
 mount --rbind /sys $rootfs_work/sys
