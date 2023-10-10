@@ -10,6 +10,8 @@ mount -t tmpfs tmpfs "$rootfs_work"
 MYROOT="$(mktemp -d)"
 mount -t tmpfs tmpfs "$MYROOT"
 mkdir -p "$MYROOT"/sysroot
+mkdir -p "$MYROOT"/sysroot/ostree/deploy
+mkdir -p "$MYROOT"/sysroot/ostree/deploy/debian/var
 OSTREE_SYSROOT="$MYROOT/sysroot"
 OSTREE_REPO=$OSTREE_SYSROOT/ostree/repo
 OSTREE_REF="debian/testing/$BUILDER_ARCH"
@@ -19,27 +21,28 @@ output="$2"
 
 tar xf "$rootfs" -C "$rootfs_work"
 
-mv "$rootfs_work"/etc "$rootfs_work"/usr/etc
 
 mkdir -p $OSTREE_REPO
-ostree init --mode=archive --repo=$OSTREE_REPO
-ostree admin init-fs --modern $OSTREE_SYSROOT
-ostree admin os-init --sysroot=$OSTREE_SYSROOT gardenlinux
-ostree config --repo=$OSTREE_REPO set sysroot.bootloader none
-ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "Debian testing build $(date --utc +%Y-%m-%dT%H:%M:%S%Z)" "$rootfs_work"
-ostree remote --repo=$OSTREE_REPO add --no-gpg-verify --no-sign-verify origin http://172.16.48.131:8000 $OSTREE_REF # fixme: hardcoded ip address
+mkdir -p $OSTREE_SYSROOT
+download="$(mktemp -d)"
+pushd $download
+curl --remote-name http://ostree.gardenlinux.io/debian-testing-$BUILDER_ARCH.tar.gz
+tar xf debian-testing-$BUILDER_ARCH.tar.gz --directory $OSTREE_REPO
+ls -l $OSTREE_REPO
+popd
+rm -rf $download
 ostree admin deploy --karg=root=LABEL=ROOT --karg-append=rw --karg-append=efi=runtime --karg-append=systemd.journald.forward_to_console=1 --sysroot=$OSTREE_SYSROOT --os=gardenlinux $OSTREE_REF
 
-boot_hash=`ls "$OSTREE_SYSROOT"/ostree/boot.1.1/gardenlinux/`
-mkdir -p "$OSTREE_SYSROOT"/ostree/boot.1.1/gardenlinux/$boot_hash/0/sysroot
+boot_hash=`ls "$OSTREE_SYSROOT"/ostree/boot.1.1/debian/`
+mkdir -p "$OSTREE_SYSROOT"/ostree/boot.1.1/debian/$boot_hash/0/sysroot
 
-mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home
-mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
-mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/roothome
-mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/opt
-mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/srv
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/debian/var/home
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/debian/var/home/user
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/debian/var/roothome
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/debian/var/opt
+mkdir -p "$OSTREE_SYSROOT"/ostree/deploy/debian/var/srv
 
-chown 1000:1000 "$OSTREE_SYSROOT"/ostree/deploy/gardenlinux/var/home/user
+chown 1000:1000 "$OSTREE_SYSROOT"/ostree/deploy/debian/var/home/user
 
 # Build disk image, this is hacky as of now, needs rework
 # Setup bootloader

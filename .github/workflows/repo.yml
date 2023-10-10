@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  repo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Build the repo
+        run: ./build ostreeRepo-amd64 ostreeRepo-arm64
+      - name: Upload amd64
+        uses: actions/upload-artifact@v3
+        with:
+          name: ostree-amd64-trixie-repo
+          path: .build/ostreeRepo-amd64-trixie-*.ostreeRepo.tar.gz
+      - name: Upload arm64
+        uses: actions/upload-artifact@v3
+        with:
+          name: ostree-arm64-trixie-repo
+          path: .build/ostreeRepo-arm64-trixie-*.ostreeRepo.tar.gz
