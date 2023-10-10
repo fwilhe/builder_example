@@ -20,9 +20,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ostree-amd64-trixie
-          path: .build/ostree-amd64*.tar.gz
+          path: .build/ostreeRepo-amd64-trixie-*.ostreeRepo.tar.gz
       - name: Upload arm64
         uses: actions/upload-artifact@v3
         with:
           name: ostree-arm64-trixie
-          path: .build/ostree-arm64*.tar.gz
+          path: .build/ostreeRepo-arm64-trixie-*.ostreeRepo.tar.gz
