@@ -102,6 +102,8 @@ printf "user:user123!" | chpasswd
 echo "%sudo ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/nopasswd
 usermod -aG sudo user
 
+dpkg --list --no-pager | tee /sbom.txt
+
 # Delete apt because this is an image-based system
 rm -f /etc/cron.daily/apt-compat
 rm -f /etc/logrotate.d/apt
