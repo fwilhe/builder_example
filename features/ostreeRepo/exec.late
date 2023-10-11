@@ -36,6 +36,39 @@ ln -s sysroot/ostree ostree
 
 echo $(date --utc +%Y-%m-%dT%H:%M:%S%Z) > /timestamp
 
+# Using a heredoc to create the update script in the root-fs
+# This script is a workaround for multiple issues
+# - the *.origin files lack the remote in the refspec
+# - OSTree won't update the bootloader entries on the ESP
+# Syntax taken from https://tldp.org/LDP/abs/html/here-docs.html
+(
+cat <<'EOF'
+#!/usr/bin/bash
+
+echo Performing OSTree upgrade
+
+# Workaround for missing remote in origin file
+find /ostree/deploy/*/deploy/*.origin | while read origin_file
+do
+  sudo sed -i 's#refspec=debian#refspec=origin:debian#g' $origin_file
+done
+
+sudo ostree admin upgrade
+
+# Workaround for wrong location of boot loader entries
+sudo mkdir -p /var/ESPmnt
+sudo mount /dev/vda1 /var/ESPmnt
+sudo cp /boot/loader/entries/* /var/ESPmnt/loader/entries
+sudo umount /dev/vda1
+
+ostree admin status
+
+echo Done upgrading. Run 'sudo systemctl reboot' to boot into the latest commit.
+EOF
+) > /usr/bin/ostree-upgrade
+
+chmod +x /usr/bin/ostree-upgrade
+
 mkdir -p /boot/efi/Default
 
 unshare --mount bash -c 'mount -t tmpfs none /sys && mount --bind /usr/bin/false /usr/bin/systemd-detect-virt && "$@"' \
