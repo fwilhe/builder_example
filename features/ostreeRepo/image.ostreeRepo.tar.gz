@@ -44,4 +44,6 @@ fi
 
 ostree commit --repo=$OSTREE_REPO --branch $OSTREE_REF --skip-if-unchanged -s "Debian testing build $(date --utc +%Y-%m-%dT%H:%M%Z)" "$rootfs_work"
 
+ostree log --repo=$OSTREE_REPO $OSTREE_REF
+
 tar --directory $OSTREE_REPO --create --mtime="@$BUILDER_TIMESTAMP" --sort name --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime . | gzip > "$output"
