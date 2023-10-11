@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+  schedule:
+    - cron:  '0 15 * * 1'
 
 jobs:
   repo:
@@ -16,12 +18,12 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Build the repo
         run: ./build ostreeRepo-amd64 ostreeRepo-arm64
-      - name: Upload amd64
+      - name: Upload amd64 repo
         uses: actions/upload-artifact@v3
         with:
           name: ostree-amd64-trixie-repo
           path: .build/ostreeRepo-amd64-trixie-*.ostreeRepo.tar.gz
-      - name: Upload arm64
+      - name: Upload arm64 repo
         uses: actions/upload-artifact@v3
         with:
           name: ostree-arm64-trixie-repo
