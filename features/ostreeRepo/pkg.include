@@ -77,7 +77,7 @@ libc6
 libcap-ng0
 libcap2
 libcap2-bin
-libcbor0.8
+libcbor0.10
 libcom-err2
 libcrypt1
 libcryptsetup12
