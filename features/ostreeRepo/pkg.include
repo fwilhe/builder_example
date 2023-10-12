@@ -28,6 +28,7 @@ debianutils
 diffutils
 distro-info-data
 dmsetup
+dpkg
 dracut
 e2fsprogs
 eject
