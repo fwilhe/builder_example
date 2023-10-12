@@ -1,8 +1,5 @@
 adduser
 apparmor
-apt
-apt-listchanges
-apt-utils
 base-files
 base-passwd
 bash
@@ -31,7 +28,6 @@ debianutils
 diffutils
 distro-info-data
 dmsetup
-dpkg
 dracut
 e2fsprogs
 eject
