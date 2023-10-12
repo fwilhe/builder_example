@@ -122,7 +122,6 @@ rm -rf /var/cache/apt/
 rm -rf /var/lib/apt/
 rm -rf /var/lib/dpkg
 rm -rf /var/log/apt/
-rm -rf /usr/bin/dpkg*
 rm -rf /usr/sbin/dpkg*
 rm -rf /usr/lib/dpkg*
 rm -rf /usr/share/dpkg*
