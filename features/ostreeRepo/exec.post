@@ -7,3 +7,5 @@ rootfs="$1"
 echo "exec.post"
 echo "rootfs: $rootfs"
 ls -la "$rootfs"
+
+rm -rf "$rootfs"/usr/bin/dpkg*
