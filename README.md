@@ -2,6 +2,10 @@
 
 This is a experimental repo to build Debian OSTree images.
 
+> [!IMPORTANT]
+> This repository is deprecated.
+See [gardenlinux/ostree-image-builder](https://github.com/gardenlinux/ostree-image-builder) for updated code.
+
 ## Build
 
 This repo is built using the [Garden Linux Builder](https://github.com/gardenlinux/builder#builder), which uses podman, see it's readme for setup instructions.
